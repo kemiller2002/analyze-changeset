@@ -1,15 +1,24 @@
 const { exec } = require("child_process");
 
-function processGitLog() {
+function ProcessGitLog(dataParser) {
   this.handleData = function (data) {
-    data.split("\n");
+    const parts = data.split("\n");
 
-    console.log(data);
+    dataParser(parts);
   };
 }
 
-function getLog() {
-  exec('git log --pretty=format:"%h"', result.bind(new processGitLog()));
+function ProcessGitDiff() {
+  this.handleData = function (data) {
+    console.log(`d : ${data}`);
+  };
+}
+
+function getLog(dataParser) {
+  exec(
+    'git log --pretty=format:"%h"',
+    result.bind(new ProcessGitLog(dataParser))
+  );
 }
 
 function result(error, stdout, stderr) {
@@ -25,8 +34,36 @@ function result(error, stdout, stderr) {
   this.handleData(stdout);
 }
 
+function getDiffLogs(getDiff, data) {
+  const results = [];
+  for (let ii = 1; ii < data.length; ii++) {
+    const current = data[ii];
+    previous = data[ii - 1];
+    const diff = {
+      current,
+      previous,
+    };
+
+    getDiff(current, previous, diff);
+
+    results.push(diff);
+  }
+  return results;
+}
+
+function doDiff(exec, handleResult, previous, current) {
+  exec(`git diff ${previous} ${current}`, handleResult);
+}
+
 function run() {
-  getLog();
+  const processGitDiff = new ProcessGitDiff();
+  const getGitDiff = (c, p, diff) => {
+    const handleResult = result.bind(processGitDiff);
+    doDiff(exec, handleResult, c, p);
+  };
+  const dataParser = (d) => getDiffLogs(getGitDiff, d);
+
+  getLog(dataParser);
 }
 
 run();
