@@ -4,7 +4,7 @@ const path = require("path");
 
 function writeFile(fs, diff) {
   const dir = path.join(__dirname, "logs");
-  const filename = `${dir}${diff.current}-${diff.previous}.txt`;
+  const filename = path.join(dir, `${diff.current}-${diff.previous}.txt`);
 
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir);
