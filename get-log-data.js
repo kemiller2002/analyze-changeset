@@ -1,4 +1,18 @@
 const { exec } = require("child_process");
+const fs = require("fs");
+const path = require("path");
+
+function writeFile(fs, diff) {
+  const dir = path.join(__dirname, "logs");
+  const filename = `${dir}${diff.current}-${diff.previous}.txt`;
+
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir);
+  }
+
+  console.log(filename);
+  fs.writeFileSync(filename, diff.diff);
+}
 
 function ProcessGitLog(dataParser) {
   this.handleData = function (data) {
@@ -8,9 +22,11 @@ function ProcessGitLog(dataParser) {
   };
 }
 
-function ProcessGitDiff() {
+function ProcessGitDiff(diff, write) {
+  this.diff = diff;
   this.handleData = function (data) {
-    console.log(`d : ${data}`);
+    this.diff.diff = data;
+    write(this.diff);
   };
 }
 
@@ -56,11 +72,15 @@ function doDiff(exec, handleResult, previous, current) {
 }
 
 function run() {
-  const processGitDiff = new ProcessGitDiff();
+  const write = (diff) => writeFile(fs, diff);
+
   const getGitDiff = (c, p, diff) => {
+    const processGitDiff = new ProcessGitDiff(diff, write);
+
     const handleResult = result.bind(processGitDiff);
     doDiff(exec, handleResult, c, p);
   };
+
   const dataParser = (d) => getDiffLogs(getGitDiff, d);
 
   getLog(dataParser);
