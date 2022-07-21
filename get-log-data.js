@@ -4,14 +4,17 @@ const path = require("path");
 
 function writeFile(fs, diff) {
   const dir = path.join(__dirname, "logs");
-  const filename = path.join(dir, `${diff.current}-${diff.previous}.txt`);
+  const filename = path.join(
+    dir,
+    `${diff.current.hash}-${diff.previous.hash}-diff.json`
+  );
 
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir);
   }
 
   console.log(filename);
-  fs.writeFileSync(filename, diff.diff);
+  fs.writeFileSync(filename, JSON.stringify(diff));
 }
 
 function ProcessGitLog(dataParser) {
@@ -32,7 +35,7 @@ function ProcessGitDiff(diff, write) {
 
 function getLog(dataParser) {
   exec(
-    'git log --pretty=format:"%h"',
+    'git log --pretty=format:"%h, %cd" --date=format:"%Y-%m-%d %H:%M:%S"',
     result.bind(new ProcessGitLog(dataParser))
   );
 }
@@ -52,17 +55,21 @@ function result(error, stdout, stderr) {
 
 function getDiffLogs(getDiff, data) {
   const results = [];
+  const dataObjets = data
+    .map((x) => x.split(","))
+    .map((x) => ({ hash: x[0].trim(), date: x[1].trim() }));
+
   for (let ii = 1; ii < data.length; ii++) {
-    const current = data[ii];
-    previous = data[ii - 1];
+    const current = dataObjets[ii];
+    const previous = dataObjets[ii - 1];
     const diff = {
       current,
       previous,
     };
 
-    getDiff(current, previous, diff);
+    getDiff(current.hash, previous.hash, diff);
 
-    results.push(diff);
+    results.push({ ...dataObjets, diff });
   }
   return results;
 }
